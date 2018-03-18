@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace CustomSpeechServiceSample
 {
-    class Program
+    public static class Program
     {
-        static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = new ConfigurationBuilder();
 
@@ -19,7 +19,7 @@ namespace CustomSpeechServiceSample
 
             var options = configuration.Get<CustomSpeechServiceOptions>();
 
-            Task.Run(() => RunAsync(options)).GetAwaiter().GetResult();
+            await RunAsync(options);
 
             Console.Read();
         }
@@ -39,6 +39,8 @@ namespace CustomSpeechServiceSample
                     Console.WriteLine($"Result DisplayText: {result.DisplayText}");
                     Console.WriteLine($"Result Confidence: {result.Confidence}");
                 }
+
+                Console.WriteLine();
             }
         }
 
