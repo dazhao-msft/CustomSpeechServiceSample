@@ -13,35 +13,46 @@ namespace CustomSpeechServiceSample
             var builder = new ConfigurationBuilder();
 
             builder.SetBasePath(Directory.GetCurrentDirectory())
-                   .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                   .AddEnvironmentVariables();
+                   .AddJsonFile("appsettings.json");
 
-            IConfigurationRoot configuration = builder.Build();
+            var configuration = builder.Build();
 
             var options = configuration.Get<CustomSpeechServiceOptions>();
 
             Task.Run(() => RunAsync(options)).GetAwaiter().GetResult();
+
+            Console.Read();
         }
 
         private static async Task RunAsync(CustomSpeechServiceOptions options)
         {
-            for (int index = 0; index < options.Endpoints.Length; index++)
+            for (int index = 0; index < options.ServiceUrls.Length; index++)
             {
-                await SendAudioAsync(options, index);
+                Console.WriteLine($"Service URL: {options.ServiceUrls[index]}");
+
+                var response = await SendRequestAsync(options, index);
+
+                Console.WriteLine($"RecognitionStatus: {response.RecognitionStatus}");
+
+                foreach (var result in response.Results)
+                {
+                    Console.WriteLine($"Result DisplayText: {result.DisplayText}");
+                    Console.WriteLine($"Result Confidence: {result.Confidence}");
+                }
             }
         }
 
-        private static Task<RecognitionResult> SendAudioAsync(CustomSpeechServiceOptions options, int endpointIndex)
+        private static async Task<RecognitionResult> SendRequestAsync(CustomSpeechServiceOptions options, int serviceUrlIndex)
         {
-            var tcs = new TaskCompletionSource<RecognitionResult>();
-
             using (var client = SpeechRecognitionServiceFactory.CreateDataClient(SpeechRecognitionMode.ShortPhrase,
                                                                                  "en-us",
                                                                                  options.PrimaryKey,
                                                                                  options.SecondaryKey,
-                                                                                 options.Endpoints[endpointIndex]))
+                                                                                 options.ServiceUrls[serviceUrlIndex]))
             {
-                client.AuthenticationUri = "https://westus.api.cognitive.microsoft.com/sts/v1.0/issueToken";
+                var tcs = new TaskCompletionSource<RecognitionResult>();
+
+                client.AuthenticationUri = options.AuthenticationUrl;
 
                 client.OnResponseReceived += (sender, e) =>
                 {
@@ -73,7 +84,7 @@ namespace CustomSpeechServiceSample
                     }
                 }
 
-                return tcs.Task;
+                return await tcs.Task;
             }
         }
     }
